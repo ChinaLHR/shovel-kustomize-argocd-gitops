@@ -1,0 +1,48 @@
+stages:
+  - build-publish-image
+  - update-kustomize
+
+build-publish-image:
+  image: ccr.ccs.tencentyun.com/shovel/ci-base:0.0.7
+  stage: build-publish-image
+  tags:
+    - docker-runner
+  only:
+    - staging
+    - main
+  services:
+    - name: docker:20-dind
+  before_script:
+    - make login-docker-registry registry-user=$DOCKER_REGISTRY_USER registry-password=$DOCKER_REGISTRY_PWD registry-host=$DOCKER_REGISTRY_HOST
+  script:
+    - make build-release-image release-image=$DOCKER_REGISTRY_HOST/$DOCKER_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - make push-release-image release-image=$DOCKER_REGISTRY_HOST/$DOCKER_REGISTRY_IMAGE:$CI_COMMIT_SHA
+
+update-kustomize:
+  image: ccr.ccs.tencentyun.com/shovel/ci-base:0.0.7
+  stage: update-kustomize
+  tags:
+    - docker-runner
+  only:
+    - staging
+    - main
+  when: manual
+  services:
+    - name: docker:20-dind
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "${GITLAB_ID_RSA}" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
+    - git remote set-url origin $GITLAB_REMOTE_URL
+    - git config --global user.email $GITLAB_EMAIL
+    - git config --global user.name $GITLAB_USERNAME
+    - if [ "$CI_COMMIT_BRANCH" == "main" ]; then KUSTOMIZE_OVERLAY="production"; fi
+    - if [ "$CI_COMMIT_BRANCH" == "staging" ]; then KUSTOMIZE_OVERLAY="staging"; fi
+  script:
+    - git checkout -B ${CI_COMMIT_BRANCH}
+    - cd .kubernetes/overlays/${KUSTOMIZE_OVERLAY}
+    - kustomize edit set image $DOCKER_REGISTRY_HOST/$DOCKER_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - kustomize build .
+    - git commit -am '[skip ci] staging kustomize update'
+    - git push origin ${CI_COMMIT_BRANCH}
