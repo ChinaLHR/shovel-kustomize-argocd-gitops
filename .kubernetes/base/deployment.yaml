@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  saken
+  namespace: default
+  labels:
+    app:  saken
+spec:
+  selector:
+    matchLabels:
+      app: saken
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app:  saken
+    spec:
+      containers:
+      - name:  saken
+        image:  ccr.ccs.tencentyun.com/shovel/shovel-gitops:7ad151f40524ce53bfb99e3109e0973e68eb3ad5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 100m
+            memory: 100Mi
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 9099
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 9099
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+          periodSeconds: 10
+        envFrom:
+          - configMapRef:
+              name: saken-config
+        ports:
+        - containerPort:  9099
+          name:  saken

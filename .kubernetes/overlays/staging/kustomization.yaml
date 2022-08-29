@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+namePrefix: staging-
+namespace: staging
+configMapGenerator:
+- envs:
+  - .env
+  name: saken-config
+patchesStrategicMerge:
+- deployment_patch.yaml
+images:
+- name: ccr.ccs.tencentyun.com/shovel/shovel-gitops
+  newTag: a61b55640c11a1396ef7903516154d62f4b24988

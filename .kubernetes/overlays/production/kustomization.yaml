@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+namePrefix: production-
+namespace: production
+configMapGenerator:
+- envs:
+  - .env
+  name: saken-config
+patchesStrategicMerge:
+- deployment_patch.yaml
+images:
+- name: ccr.ccs.tencentyun.com/shovel/shovel-gitops
+  newTag: 6abe7f18835d156db583c8dbff787be6827c3f86
