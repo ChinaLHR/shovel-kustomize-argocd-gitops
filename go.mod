@@ -1,4 +1,4 @@
-module github.com/chinalhr/shovel-kubernetes-helm-devops
+module github.com/chinalhr/shovel-kustomize-argocd-gitops
 
 go 1.18
 
